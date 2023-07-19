@@ -1,0 +1,75 @@
+Color code for specific column or field. like, if item is dnager then red else green.
+
+
+REPORT zdemo_plant_data.
+
+ 
+
+TYPES : BEGIN OF ty_mard,
+          matnr TYPE mard-matnr,
+          werks TYPE mard-werks,
+          lgort TYPE mard-werks,
+        END OF ty_mard.
+
+ 
+
+TYPES : BEGIN OF ty_range,
+         sign TYPE char1,
+        opti TYPE char2,
+        low TYPE matnr,
+        high TYPE matnr,
+       END OF ty_range.
+
+ 
+
+DATA : it_mard TYPE STANDARD TABLE OF ty_mard,
+       wa_mard LIKE LINE OF it_mard.
+
+ 
+
+DATA : it_check_material TYPE STANDARD TABLE OF zcheck_material,
+       wa_check_material LIKE LINE OF it_check_material.
+
+ 
+
+DATA it_range_s TYPE STANDARD TABLE OF ty_range.
+DATA it_range_d TYPE STANDARD TABLE OF ty_range.
+DATA wa_range TYPE ty_range.
+
+ 
+
+SELECT-OPTIONS s_werks FOR wa_mard-werks.
+
+ 
+
+
+SELECT matnr werks lgort FROM mard INTO TABLE it_mard WHERE werks IN s_werks.
+SELECT * FROM zcheck_material INTO TABLE it_check_material.
+
+ 
+
+LOOP AT it_check_material INTO wa_check_material.
+   IF wa_check_material-name EQ 'DANGER'.
+     MOVE-CORRESPONDING wa_check_material TO wa_range.
+     APPEND wa_range TO it_range_d.
+   ELSEIF wa_check_material-name EQ 'SAFE'.
+     MOVE-CORRESPONDING wa_check_material TO wa_range.
+     APPEND wa_range TO it_range_s.
+   ENDIF.
+   CLEAR wa_range.
+ENDLOOP.
+
+ 
+
+LOOP AT it_mard INTO wa_mard.
+  IF wa_mard-matnr IN it_range_d.
+    FORMAT COLOR COL_NEGATIVE.
+    WRITE : / wa_mard-matnr, wa_mard-werks, wa_mard-lgort.
+  ELSEIF wa_mard-matnr IN it_range_s.
+     FORMAT COLOR COL_POSITIVE.
+    WRITE : / wa_mard-matnr, wa_mard-werks, wa_mard-lgort.
+  ELSE.
+    WRITE : / wa_mard-matnr, wa_mard-werks, wa_mard-lgort.
+  ENDIF.
+  FORMAT COLOR OFF.
+ENDLOOP.

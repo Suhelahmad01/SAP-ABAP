@@ -1,0 +1,63 @@
+FUNCTION MODULE :
+
+PROGRAM 1:
+
+*&---------------------------------------------------------------------*
+*& Report ZDEMO_SUH_FM
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zdemo_suh_fm.
+
+DATA : it_header TYPE zdemo_t_header,
+       wa_header LIKE LINE OF it_header.
+DATA :it_lineitem TYPE zdemo_t_item,
+      wa_lineitem LIKE LINE OF it_lineitem.
+
+
+DATA v_vbeln TYPE vbrk-vbeln.
+SELECT-OPTIONS s_vbeln FOR v_vbeln.
+CALL FUNCTION 'ZDEMO_SUH_FM2'
+  EXPORTING
+    im_vbeln    = S_vbeln[]
+  IMPORTING
+    exit_header = it_header
+    exit_item   = it_lineitem.
+
+*SORT it_lineitem BY vbeln posnr.
+*LOOP AT it_lineitem INTO wa_lineitem.
+*
+*
+*
+*  AT NEW vbeln.
+WRITE : / 'Doc No',
+      10'Payer',
+     35'Date',
+      50'Net Value'.
+LOOP AT it_header INTO wa_header." WITH KEY vbeln = wa_lineitem-vbeln.
+  WRITE : / wa_header-vbeln,
+          10 wa_header-name1,
+          35 wa_header-fkdat LEFT-JUSTIFIED,
+          50 wa_header-netwr LEFT-JUSTIFIED.
+*   HIDE wa_header-vbeln.
+  SKIP.
+  CLEAR wa_header.
+*  endloop.
+*skip.
+*    AT LINE-SELECTION.
+*    WRITE : / 'Item',
+*          10'Material',
+*          20'Quantity',
+*          30'UoM',
+*          40'Net Value'.
+**  ENDAT.
+
+*  WRITE : / wa_lineitem-posnr,
+*         10 wa_lineitem-matnr,
+*         20 wa_lineitem-fklmg LEFT-JUSTIFIED,
+*         30 wa_lineitem-mseht,
+*         40 wa_lineitem-netwr LEFT-JUSTIFIED.
+ENDLOOP.
+
+PROGRAM 2: CALLING FUNCTION.
+

@@ -1,0 +1,114 @@
+Billing document with SELECTION OPTION:
+
+DATA p_vbeln TYPE ZDebjit_Products-vbeln .
+SELECT-OPTIONS s_vbeln FOR p_vbeln .
+
+ 
+
+TYPES : BEGIN OF ty_header ,
+          vbeln TYPE ZDebjit_Products-vbeln,
+          fkdat TYPE ZDebjit_Products-fkdat,
+          kunrg TYPE ZDebjit_Products-kunrg,
+          netwr TYPE ZDebjit_Products-netwr,
+        END OF ty_header .
+TYPES : BEGIN OF ty_item ,
+          vbeln TYPE ZDebjit_Item-vbeln,
+          posnr TYPE ZDebjit_Item-posnr , "item
+          matnr TYPE ZDebjit_Item-matnr, "material
+          fkimg TYPE ZDebjit_Item-fkimg, "quantity
+          vrkme TYPE ZDebjit_Item-vrkme, "UOM
+          netwr TYPE ZDebjit_Item-netwr, "net value
+        END OF ty_item .
+TYPES : BEGIN OF ty_t006a ,
+          msehi TYPE t006a-msehi,
+          mseht TYPE t006a-mseht,
+        END OF ty_t006a .
+TYPES : BEGIN OF ty_kna1,
+          kunnr TYPE kna1-kunnr,
+          name1 TYPE kna1-name1,
+        END OF ty_kna1 .
+
+ 
+
+ 
+
+DATA : it_header TYPE  TABLE OF ty_header,
+       wa_header LIKE LINE OF it_header.
+DATA : it_item TYPE TABLE OF ty_item,
+       wa_item LIKE LINE OF it_item.
+
+ 
+
+DATA: it_kna1 TYPE TABLE OF ty_kna1,
+      wa_kna1 LIKE LINE OF it_kna1.
+DATA :it_mseht TYPE TABLE OF ty_t006a,
+      wa_mseht LIKE LINE OF it_mseht.
+DATA :v_total type ZDebjit_Item-fkimg value 0 .
+DATA :v_totalNetV type ZDebjit_Item-netwr value 0 .
+data: my_flag type boolean.
+data :counter type i .
+
+ 
+
+SELECT  vbeln fkdat kunrg netwr  FROM ZDebjit_Products INTO TABLE  it_header WHERE vbeln IN s_vbeln[].
+SELECT vbeln posnr matnr fkimg vrkme netwr FROM  ZDebjit_Item INTO TABLE it_item  WHERE vbeln IN s_vbeln[].
+SELECT msehi mseht FROM t006a INTO TABLE it_mseht FOR ALL ENTRIES IN it_item WHERE msehi EQ it_item-vrkme.
+SELECT kunnr name1 FROM kna1 INTO TABLE it_kna1  .
+SORT it_item BY vbeln.
+DATA v_vbeln_temp LIKE wa_item-vbeln.
+DESCRIBE TABLE it_item lines counter .
+LOOP AT it_item INTO wa_item  .
+
+ 
+
+  IF wa_item-vbeln NE v_vbeln_temp.
+    IF SY-tabix NE 1 .
+       WRITE : /60 'TOTAL' ,v_total ,
+       100 'TOTAL',v_totalNetV .
+     ENDIF .
+    my_flag = abap_true .
+    READ TABLE it_header INTO wa_header WITH KEY vbeln = wa_item-vbeln .
+    READ TABLE it_kna1 INTO wa_kna1 WITH KEY kunnr = wa_header-kunrg .
+
+ 
+
+    WRITE : /'DOC no' ,wa_header-vbeln,
+                /'PAYER name' , wa_kna1-name1,
+                /'DATE',  wa_header-fkdat,
+                /'NET VALUE', wa_header-netwr.
+    WRITE : /'ITEM' ,
+  30 'MATERIAL',
+  60 'QTY',
+  90 'UOM',
+  120 'NET VALUE' .
+
+ 
+
+  CLEAR v_total .
+  CLEAR v_totalNetV.
+  ENDIF.
+  IF wa_item-vbeln EQ v_vbeln_temp OR wa_item-vbeln is not initial.
+     v_total = v_total + wa_item-fkimg .
+     v_totalNetV = v_totalNetV + wa_item-netwr .
+    ENDIF .
+*    IF wa_item-vbeln EQ v_vbeln_temp .
+*    my_flag = abap_false .
+*      ENDIF .
+  WRITE : /  wa_item-posnr ,
+  30  wa_item-matnr,
+  60  wa_item-fkimg LEFT-JUSTIFIED,
+*            90  wa_mseht-mseht,
+  120 wa_item-netwr LEFT-JUSTIFIED.
+  v_vbeln_temp = wa_item-vbeln.
+
+ 
+
+*  IF my_flag EQ abap_false.
+*    WRITE : /60 'TOTAL' ,v_total,
+*     100 'TOTAL',v_totalNetV .
+*  ENDIF .
+IF SY-TABIX EQ counter.
+  WRITE : /60 'TOTAL' ,v_total ,
+       100 'TOTAL',v_totalNetV .
+  ENDIF.
+ENDLOOP .

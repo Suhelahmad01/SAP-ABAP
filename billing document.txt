@@ -1,0 +1,98 @@
+Billing Document assessment:
+
+
+REPORT ZVJ_TASK1.
+
+ 
+"PARAMETERS p_VBELN TYPE zvjvbpk-vbeln.
+DATA v_VBELN TYPE zvjvbpk-vbeln.
+SELECT-OPTIONS p_VBELN FOR v_VBELN.
+
+ 
+
+
+TYPES : BEGIN OF ty_zvjvbpk,
+          vbeln TYPE zvjvbpk-vbeln,
+          fkdat TYPE zvjvbpk-fkdat,
+          kunrg TYPE zvjvbpk-kunrg,
+          netwr TYPE zvjvbpk-netwr,
+        END OF ty_zvjvbpk.
+
+ 
+
+TYPES : BEGIN OF ty_zvjvbrp,
+          posnr TYPE zvjvbrp-posnr,
+          matnr TYPE zvjvbrp-matnr,
+          fkimg TYPE zvjvbrp-fkimg,
+          vrkme TYPE zvjvbrp-vrkme,
+          netwr TYPE zvjvbrp-netwr,
+        END OF ty_zvjvbrp.
+TYPES : BEGIN OF ty_t006a,
+          msehi TYPE t006a-msehi,
+          mseht TYPE t006a-mseht,
+        END OF ty_t006a.
+
+ 
+
+TYPES : BEGIN OF kna1,
+         name1 TYPE kna1-NAME1,
+         kunnr TYPE kna1-kunnr,
+   END OF kna1.
+
+ 
+
+*DATA st_head TYPE ty_zvjvbpk.
+*DATA st_item TYPE ty_zvjvbrp.
+*DATA v_payername TYPE kna1-name1.
+*DATA v_Desc TYPE t006a-mseht.
+
+ 
+
+DATA : it_zvjvbrp TYPE TABLE OF zvjvbrp,
+       wa_zvjvbrp LIKE LINE OF it_zvjvbrp,
+       it_zvjvbpk TYPE TABLE OF zvjvbpk,
+       wa_zvjvbpk LIKE LINE OF it_zvjvbpk,
+       it_t006a   TYPE TABLE OF ty_t006a,
+       wa_t006a   LIKE LINE OF it_t006a,
+       it_kna1 TYPE TABLE OF kna1,
+       wa_kna1 LIKE LINE OF it_kna1.
+
+ 
+
+
+SELECT * FROM zvjvbpk INTO TABLE it_zvjvbpk WHERE vbeln IN p_vbeln[].
+
+ 
+
+SELECT  name1 kunnr FROM kna1 INTO TABLE it_kna1 FOR ALL ENTRIES IN it_zvjvbpk  WHERE kunnr EQ it_zvjvbpk-kunrg.
+  LOOP AT it_zvjvbpk INTO wa_zvjvbpk.
+    READ TABLE it_kna1 INTO wa_kna1 WITH KEY kunnr = wa_zvjvbpk-kunrg.
+WRITE : /'DOCUMENT NO :', wa_zvjvbpk-vbeln,
+        / 'Payer :', wa_kna1-name1,
+            /'Date :', wa_zvjvbpk-fkdat,
+           /'Net Value :', wa_zvjvbpk-netwr LEFT-JUSTIFIED.
+ENDLOOP.
+
+ 
+
+WRITE : / 'item',
+        40 'Material',
+       75 'Quantity',
+       90 'Units Of measure',
+       120 'Net Value'.
+SELECT   * FROM zvjvbrp  INTO TABLE it_zvjvbrp WHERE vblen IN p_vbeln[].
+
+ 
+
+SELECT msehi mseht FROM t006a INTO TABLE it_t006a FOR ALL ENTRIES IN it_zvjvbrp WHERE spras EQ sy-langu AND msehi EQ it_zvjvbrp-vrkme.
+
+ 
+
+LOOP AT it_zvjvbrp INTO wa_zvjvbrp.
+  READ TABLE it_t006a INTO wa_t006a WITH KEY msehi = wa_zvjvbrp-vrkme.
+  WRITE : / wa_zvjvbrp-posnr,
+      40 wa_zvjvbrp-matnr,
+       75 wa_zvjvbrp-fkimg LEFT-JUSTIFIED,
+       90 wa_t006a-mseht,
+        120 wa_zvjvbrp-netwr LEFT-JUSTIFIED.
+ENDLOOP.

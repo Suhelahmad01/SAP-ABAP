@@ -1,0 +1,51 @@
+Internal Table:
+
+REPORT zdemo_internal_tables_suh.
+
+TYPES : BEGIN OF ty_makt,
+          matnr TYPE matnr,
+          spras  TYPE spras,
+          maktx TYPE maktx,
+        END OF ty_makt.
+
+DATA : it_makt TYPE TABLE OF ty_makt,
+       wa_makt LIKE LINE OF it_makt.
+
+SELECT matnr spras maktx FROM makt INTO TABLE it_makt.
+LOOP AT it_makt INTO wa_makt.
+  WRITE : / wa_makt-matnr, wa_makt-spras, wa_makt-maktx.
+
+  SELECT matnr spras maktx FROM makt INTO wa_makt.
+    WRITE : / wa_makt-matnr,wa_makt-spras, wa_makt-maktx.
+  ENDSELECT.
+
+  wa_makt-matnr = '100'.
+  wa_makt-spras = 'E'.
+  wa_makt-maktx = 'Pen'.
+  APPEND wa_makt TO it_makt.
+
+  wa_makt-matnr = '200'.
+  wa_makt-spras = 'E'.
+  wa_makt-maktx = 'Pencil'.
+  APPEND wa_makt TO it_makt.
+
+  wa_makt-matnr = '200'.
+  wa_makt-spras = 'D'.
+  wa_makt-maktx = 'Pencilz german'.
+  APPEND wa_makt TO it_makt.
+
+  wa_makt-matnr = '300'.
+  wa_makt-spras = 'E'.
+  wa_makt-maktx = 'Book'.
+  APPEND wa_makt TO it_makt.
+
+  wa_makt-matnr = '500'.
+  wa_makt-spras = 'D'.
+  wa_makt-maktx = 'Penc'.
+  APPEND wa_makt TO it_makt.
+
+  READ TABLE it_makt INTO wa_makt INDEX 3.
+  READ TABLE it_makt INTO wa_makt WITH KEY matnr = '200' spras = 'D'.
+
+  WRITE 'End'.
+  ENDLOOP.

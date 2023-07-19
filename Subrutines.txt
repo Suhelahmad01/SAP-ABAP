@@ -1,0 +1,163 @@
+Calling Subrutine from one program into another:
+
+Main Program:
+
+REPORT zalfy_billing_form.
+TYPES : BEGIN OF ty_kna1,
+          kunnr TYPE kna1-kunnr,
+          name1 TYPE kna1-name1,
+        END OF ty_kna1.
+
+ 
+
+TYPES : BEGIN OF ty_t006a,
+          msehi TYPE t006a-msehi,
+          mseht TYPE t006a-mseht,
+        END OF ty_t006a.
+TYPES : BEGIN OF ty_vbrk,
+          vbeln TYPE vbrk-vbeln,
+          fkdat TYPE vbrk-fkdat,
+          kunrg TYPE vbrk-kunrg,
+          netwr TYPE vbrk-netwr,
+        END OF ty_vbrk.
+
+ 
+
+
+TYPES : BEGIN OF ty_vbrp,
+          vbeln TYPE zitem-vbeln,
+          posnr TYPE vbrp-posnr,
+          matnr TYPE vbrp-matnr,
+          fkimg TYPE vbrp-fklmg,
+          vrkme TYPE vbrp-vrkme,
+          netwr TYPE vbrp-netwr,
+        END OF ty_vbrp.
+" Data Objects
+DATA : it_vbrk TYPE TABLE OF zbilling,
+       wa_vbrk LIKE LINE OF it_vbrk.
+DATA : it_vbrp TYPE TABLE OF zitem,
+       wa_vbrp LIKE LINE OF it_vbrp.
+
+ 
+
+DATA it_kna1 TYPE STANDARD TABLE OF ty_kna1.
+DATA it_t006a TYPE STANDARD TABLE OF ty_t006a.
+DATA : wa_kna1  LIKE LINE OF it_kna1,
+       wa_t006a LIKE LINE OF it_t006a,
+       p_vbeln  TYPE vbrk-vbeln.
+
+ 
+
+TYPES ty_it_kna1 TYPE STANDARD TABLE OF ty_kna1.
+TYPES ty_it_t006a TYPE STANDARD TABLE OF ty_t006a.
+TYPES ty_it_vbrk TYPE STANDARD TABLE OF ty_vbrk.
+TYPES ty_it_vbrp TYPE STANDARD TABLE OF ty_vbrp.
+
+ 
+
+
+*data: gv_billing type vbrk-vbeln.
+
+ 
+
+types: tr_vbeln like RANGE OF vbrk-vbeln.
+
+ 
+
+
+FORM get_details USING s_vbeln TYPE tr_vbeln CHANGING p_it_vbrk TYPE ty_it_vbrk
+                                         p_it_vbrp TYPE ty_it_vbrp
+                                         p_it_kna1 TYPE ty_it_kna1
+                                        p_it_t006a TYPE ty_it_t006a.
+*select-options s_vbeln for wa_vbrk-vbeln.
+  SELECT vbeln fkdat kunrg netwr FROM zbilling INTO TABLE p_it_vbrk WHERE vbeln in s_vbeln.
+  SELECT vbeln posnr matnr fklmg vrkme netwr FROM zitem INTO TABLE p_it_vbrp WHERE vbeln in s_vbeln.
+
+ 
+
+  SELECT kunnr name1 FROM kna1 INTO TABLE p_it_kna1 FOR ALL ENTRIES IN it_vbrk WHERE kunnr EQ it_vbrk-kunrg.
+  SELECT msehi mseht FROM t006a INTO TABLE p_it_t006a FOR ALL ENTRIES IN it_vbrp WHERE msehi EQ it_vbrp-vrkme.
+ENDFORM.
+
+
+Program 2: Calling a function 
+
+REPORT zalfy_billing_perform.
+
+ 
+
+TYPES : BEGIN OF ty_vbrk,
+          vbeln TYPE vbrk-vbeln,
+          fkdat TYPE vbrk-fkdat,
+          kunrg TYPE vbrk-kunrg,
+          netwr TYPE vbrk-netwr,
+        END OF ty_vbrk.
+
+ 
+
+
+TYPES : BEGIN OF ty_vbrp,
+          vbeln TYPE zitem-vbeln,
+          posnr TYPE vbrp-posnr,
+          matnr TYPE vbrp-matnr,
+          fkimg TYPE vbrp-fklmg,
+          vrkme TYPE vbrp-vrkme,
+          netwr TYPE vbrp-netwr,
+        END OF ty_vbrp.
+TYPES : BEGIN OF ty_kna1,
+          kunnr TYPE kna1-kunnr,
+          name1 TYPE kna1-name1,
+        END OF ty_kna1.
+
+ 
+
+TYPES : BEGIN OF ty_t006a,
+          msehi TYPE t006a-msehi,
+          mseht TYPE t006a-mseht,
+        END OF ty_t006a.
+" Data Objects
+DATA : it_vbrk TYPE TABLE OF ty_vbrk,
+       wa_vbrk LIKE LINE OF it_vbrk.
+DATA : it_vbrp TYPE TABLE OF ty_vbrp,
+       wa_vbrp LIKE LINE OF it_vbrp.
+
+ 
+
+DATA it_kna1 TYPE STANDARD TABLE OF ty_kna1.
+DATA it_t006a TYPE STANDARD TABLE OF ty_t006a.
+DATA : wa_kna1  LIKE LINE OF it_kna1,
+       wa_t006a LIKE LINE OF it_t006a,
+       p_vbeln  TYPE vbrp-vbeln.
+SELECT-OPTIONS s_vbeln FOR p_vbeln.
+*SELECT-OPTIONS s_vbeln FOR wa_vbrk-vbeln.
+*SET PF-STATUS 'LIST'.
+PERFORM get_details IN PROGRAM zalfy_billing_form USING s_vbeln[] CHANGING it_vbrk it_vbrp it_kna1 it_t006a.
+SORT it_vbrp BY vbeln.
+LOOP AT it_vbrp INTO wa_vbrp.
+  AT NEW vbeln.
+    READ TABLE it_vbrk INTO wa_vbrk WITH KEY vbeln = wa_vbrp-vbeln.
+    READ TABLE it_kna1 INTO wa_kna1 WITH KEY kunnr = wa_vbrk-kunrg.
+    WRITE : / 'Doc No:', wa_vbrk-vbeln,
+           / 'Payer:', wa_kna1-name1,
+           / 'Date:', wa_vbrk-fkdat,
+           / 'Net Value:', wa_vbrk-netwr.
+    SKIP.
+    WRITE : / 'Item',
+             'Material',
+             'Quantity',
+             'UoM',
+             'Net Value'.
+  ENDAT.
+  READ TABLE it_t006a INTO wa_t006a WITH KEY msehi = wa_vbrp-vrkme.
+  WRITE : / wa_vbrp-posnr,
+            wa_vbrp-matnr,
+            wa_vbrp-fkimg,
+            wa_t006a-mseht,
+            wa_vbrp-netwr.
+  AT END OF vbeln.
+    SUM.
+    WRITE : / wa_vbrp-fkimg, wa_vbrp-netwr.
+*    WRITE : / '***************************************END of Document****************************************************'.
+    SKIP.
+  ENDAT.
+ENDLOOP.

@@ -1,0 +1,52 @@
+Create a function module to import a range of customer numbers and export the customer data for the given range.
+
+Customer Data can be found in table KNA1.
+
+Time : 30 minutes
+
+Create a package and keep all objects created for this task in that package.
+============================================================================
+CODE: program 1
+
+data v_custid TYPE KNA1-KUNNR.
+select-OPTIONS s_custid FOR v_custid.
+data:it_custdata TYPE ZKIRAN_T_AST2,
+      wa_custdata LIKE LINE OF it_custdata.
+
+
+CALL FUNCTION 'ZKIRAN_FMOD2'
+  EXPORTING
+    im_kunnr          = s_custid[]
+IMPORTING
+   EX_CUSTDATA       = it_custdata
+          .
+
+WRITE : / 'customer',
+            20 'customer name',
+            40 'city'.
+LOOP at it_custdata INTO wa_custdata.
+   WRITE : / wa_custdata-KUNNR,
+             wa_custdata-name1,
+             wa_custdata-KUNNR.
+   ENDLOOP.
+===================================================
+program 2:
+
+FUNCTION ZKIRAN_FMOD2.
+*"----------------------------------------------------------------------
+*"*"Local Interface:
+*"  IMPORTING
+*"     REFERENCE(IM_KUNNR) TYPE  ZKIRAN_T_CUSTRAN
+*"  EXPORTING
+*"     REFERENCE(EX_CUSTDATA) TYPE  ZKIRAN_T_AST2
+*"----------------------------------------------------------------------
+
+
+data: lw_custdata LIKE LINE OF EX_CUSTDATA.
+
+
+select KUNNR NAME1 ORT01 from KNA1 into lw_custdata WHERE kunnr in IM_KUNNR.
+  append lw_custdata to EX_CUSTDATA.
+ENDSELECT.
+ENDFUNCTION.
+
